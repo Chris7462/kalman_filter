@@ -14,15 +14,10 @@ find_package(Eigen3 REQUIRED)
 
 add_library(kalman_filter INTERFACE)
 
-target_include_directories(kalman_filter
-  INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-    ${EIGEN3_INCLUDE_DIR})
-
-ament_target_dependencies(kalman_filter
-  INTERFACE
-    Eigen3)
+target_include_directories(kalman_filter INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${EIGEN3_INCLUDE_DIR})
 
 target_compile_features(kalman_filter INTERFACE c_std_99 cxx_std_17)  # Require C99 and C++17
 
