@@ -1,70 +1,171 @@
-cmake_minimum_required(VERSION 3.8)
-project(kalman_filter)
+cmake_minimum_required(VERSION 3.16)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-O3 -Wall -Wextra -Wpedantic)
+project(kalman_filter
+  VERSION 1.0.0
+  DESCRIPTION "Modern C++ Kalman Filter implementation using Eigen"
+  LANGUAGES CXX)
+
+# Option to enable/disable ROS 2 support
+option(ENABLE_ROS2 "Build with ROS 2 support" ON)
+
+# Auto-detect ROS 2 environment if not explicitly set
+if(ENABLE_ROS2 AND NOT DEFINED ENV{ROS_DISTRO})
+  message(STATUS "ROS_DISTRO not found, disabling ROS 2 support")
+  set(ENABLE_ROS2 OFF)
 endif()
 
-# find dependencies
-find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
-find_package(Eigen3 REQUIRED)
+# Try to find ament_cmake
+if(ENABLE_ROS2)
+  find_package(ament_cmake QUIET)
+  if(NOT ament_cmake_FOUND)
+    message(STATUS "ament_cmake not found, building as pure CMake")
+    set(ENABLE_ROS2 OFF)
+  endif()
+endif()
 
-add_library(kalman_filter INTERFACE)
+message(STATUS "Building with ROS 2 support: ${ENABLE_ROS2}")
 
-target_include_directories(kalman_filter INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  ${EIGEN3_INCLUDE_DIR})
+# Build type
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+endif()
 
-target_compile_features(kalman_filter INTERFACE c_std_99 cxx_std_17)  # Require C99 and C++17
+# Find dependencies
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
-install(TARGETS kalman_filter
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
+# Library configuration
+add_library(${PROJECT_NAME} INTERFACE)
+
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
+target_include_directories(kalman_filter
+  INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>)
+
+target_link_libraries(${PROJECT_NAME}
+  INTERFACE
+    Eigen3::Eigen)
+
+target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
+
+target_compile_options(${PROJECT_NAME} INTERFACE -Wall -Wextra -Wpedantic)
+
+# Setup for installation
+if(ENABLE_ROS2)
+  set(EXPORT_NAME export_${PROJECT_NAME})
+  set(INSTALL_LIBDIR lib)
+  set(INSTALL_INCLUDEDIR include)
+  set(INSTALL_CMAKEDIR lib/cmake/${PROJECT_NAME})
+else()
+  include(GNUInstallDirs)
+  set(EXPORT_NAME ${PROJECT_NAME}Targets)
+  set(INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+  set(INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
+  set(INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+endif()
+
+# Install targets
+install(TARGETS ${PROJECT_NAME}
+  EXPORT ${EXPORT_NAME}
+  ARCHIVE DESTINATION ${INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${INSTALL_LIBDIR}
   RUNTIME DESTINATION bin)
 
-install(
-  DIRECTORY include/${PROJECT_NAME}
-  DESTINATION include
-)
+# Install headers
+install(DIRECTORY include/
+  DESTINATION ${INSTALL_INCLUDEDIR}
+  FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
 
-ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
-ament_export_dependencies(Eigen3)
-
+# Test sources (common for both build types)
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-
-  find_package(ament_cmake_gtest REQUIRED)
-
   set(test_sources
     matrix_test
     filter_base_test
     standard_base_test
     extended_kalman_filter_test)
-
-  foreach(test_src ${test_sources})
-    ament_add_gtest(${test_src}
-      test/${test_src}.cpp)
-
-    target_include_directories(${test_src} PRIVATE
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:include>
-      ${EIGEN3_INCLUDE_DIR})
-
-    target_link_libraries(${test_src} gtest_main)
-  endforeach()
 endif()
 
-ament_package()
+# =============================================================================
+# ROS 2 SPECIFIC CONFIGURATION
+# =============================================================================
+if(ENABLE_ROS2)
+  message(STATUS "Configuring for ROS 2 build")
+
+  # Export targets for ROS 2
+  ament_export_targets(${EXPORT_NAME} HAS_LIBRARY_TARGET)
+  ament_export_dependencies(Eigen3)
+
+  # ROS 2 Testing
+  if(BUILD_TESTING)
+    find_package(ament_lint_auto REQUIRED)
+    set(ament_cmake_copyright_FOUND TRUE)
+    set(ament_cmake_cpplint_FOUND TRUE)
+    ament_lint_auto_find_test_dependencies()
+
+    find_package(ament_cmake_gtest REQUIRED)
+
+    foreach(test_src ${test_sources})
+      ament_add_gtest(${test_src} test/${test_src}.cpp)
+      target_link_libraries(${test_src} ${PROJECT_NAME})
+    endforeach()
+  endif()
+
+  ament_package()
+
+# =============================================================================
+# PURE CMAKE CONFIGURATION
+# =============================================================================
+else()
+  message(STATUS "Configuring for pure CMake build")
+
+  include(CMakePackageConfigHelpers)
+
+  # Export targets for pure CMake
+  install(EXPORT ${EXPORT_NAME}
+    FILE ${PROJECT_NAME}Targets.cmake
+    NAMESPACE ${PROJECT_NAME}::
+    DESTINATION ${INSTALL_CMAKEDIR})
+
+  # Create config files
+  configure_package_config_file(
+    cmake/Config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION ${INSTALL_CMAKEDIR})
+
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+
+  install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${INSTALL_CMAKEDIR})
+
+  # Add uninstall target
+  if(NOT TARGET uninstall)
+    configure_file(
+      "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+      "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+      IMMEDIATE @ONLY)
+
+    add_custom_target(uninstall
+      COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+  endif()
+
+  # Pure CMake Testing
+  if(BUILD_TESTING)
+    enable_testing()
+    find_package(GTest REQUIRED)
+
+    foreach(test_src ${test_sources})
+      add_executable(${test_src} test/${test_src}.cpp)
+      target_link_libraries(${test_src}
+        ${PROJECT_NAME}
+        GTest::gtest_main)
+
+      gtest_discover_tests(${test_src})
+    endforeach()
+  endif()
+endif()
