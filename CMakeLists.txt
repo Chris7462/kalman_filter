@@ -68,10 +68,10 @@ if(ENABLE_ROS2)
 
   # Install targets
   install(TARGETS ${PROJECT_NAME}
-    EXPORT export_${PROJECT_NAME}
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin)
+    EXPORT export_${PROJECT_NAME})
+    #ARCHIVE DESTINATION lib
+    #LIBRARY DESTINATION lib
+    #RUNTIME DESTINATION bin)
 
   # Install headers
   install(
@@ -79,7 +79,8 @@ if(ENABLE_ROS2)
     DESTINATION include)
 
   # Export targets for ROS 2
-  ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+  #ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+  ament_export_targets(export_${PROJECT_NAME})
   ament_export_dependencies(Eigen3)
 
   # ROS 2 Testing
@@ -105,32 +106,31 @@ if(ENABLE_ROS2)
 else()
   message(STATUS "Configuring for pure CMake build")
 
+  include(GNUInstallDirs)
   include(CMakePackageConfigHelpers)
 
   # Install targets
   install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}Targets
-    ARCHIVE DESTINATION lib
-    LIBRARY DESTINATION lib
-    RUNTIME DESTINATION bin)
+    EXPORT ${PROJECT_NAME}Targets)
+    #ARCHIVE DESTINATION lib
+    #LIBRARY DESTINATION lib
+    #RUNTIME DESTINATION bin)
 
   # Install headers
-  install(
-    DIRECTORY include/${PROJECT_NAME}
-    DESTINATION include)
-    #FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
+  install(DIRECTORY include/${PROJECT_NAME}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
   # Export targets for pure CMake
   install(EXPORT ${PROJECT_NAME}Targets
     FILE ${PROJECT_NAME}Targets.cmake
     NAMESPACE ${PROJECT_NAME}::
-    DESTINATION lib/cmake/${PROJECT_NAME})
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
   # Create config files
   configure_package_config_file(
     cmake/Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-    INSTALL_DESTINATION lib/cmake/${PROJECT_NAME})
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
   write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
@@ -140,7 +140,7 @@ else()
   install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-    DESTINATION lib/cmake/${PROJECT_NAME})
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
   # Add uninstall target
   if(NOT TARGET uninstall)
