@@ -38,10 +38,10 @@ add_library(${PROJECT_NAME} INTERFACE)
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-target_include_directories(kalman_filter
+target_include_directories(${PROJECT_NAME}
   INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${INSTALL_INCLUDEDIR}>)
+    $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(${PROJECT_NAME}
   INTERFACE
@@ -50,32 +50,6 @@ target_link_libraries(${PROJECT_NAME}
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
 
 target_compile_options(${PROJECT_NAME} INTERFACE -Wall -Wextra -Wpedantic)
-
-# Setup for installation
-if(ENABLE_ROS2)
-  set(EXPORT_NAME export_${PROJECT_NAME})
-  set(INSTALL_LIBDIR lib)
-  set(INSTALL_INCLUDEDIR include)
-  set(INSTALL_CMAKEDIR lib/cmake/${PROJECT_NAME})
-else()
-  include(GNUInstallDirs)
-  set(EXPORT_NAME ${PROJECT_NAME}Targets)
-  set(INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR})
-  set(INSTALL_INCLUDEDIR ${CMAKE_INSTALL_INCLUDEDIR})
-  set(INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
-endif()
-
-# Install targets
-install(TARGETS ${PROJECT_NAME}
-  EXPORT ${EXPORT_NAME}
-  ARCHIVE DESTINATION ${INSTALL_LIBDIR}
-  LIBRARY DESTINATION ${INSTALL_LIBDIR}
-  RUNTIME DESTINATION bin)
-
-# Install headers
-install(DIRECTORY include/
-  DESTINATION ${INSTALL_INCLUDEDIR}
-  FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
 
 # Test sources (common for both build types)
 if(BUILD_TESTING)
@@ -92,8 +66,21 @@ endif()
 if(ENABLE_ROS2)
   message(STATUS "Configuring for ROS 2 build")
 
+  # Install targets
+  install(TARGETS ${PROJECT_NAME}
+    EXPORT export_${PROJECT_NAME})
+    #ARCHIVE DESTINATION lib
+    #LIBRARY DESTINATION lib
+    #RUNTIME DESTINATION bin)
+
+  # Install headers
+  install(
+    DIRECTORY include/${PROJECT_NAME}
+    DESTINATION include)
+
   # Export targets for ROS 2
-  ament_export_targets(${EXPORT_NAME} HAS_LIBRARY_TARGET)
+  #ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+  ament_export_targets(export_${PROJECT_NAME})
   ament_export_dependencies(Eigen3)
 
   # ROS 2 Testing
@@ -119,19 +106,31 @@ if(ENABLE_ROS2)
 else()
   message(STATUS "Configuring for pure CMake build")
 
+  include(GNUInstallDirs)
   include(CMakePackageConfigHelpers)
 
+  # Install targets
+  install(TARGETS ${PROJECT_NAME}
+    EXPORT ${PROJECT_NAME}Targets)
+    #ARCHIVE DESTINATION lib
+    #LIBRARY DESTINATION lib
+    #RUNTIME DESTINATION bin)
+
+  # Install headers
+  install(DIRECTORY include/${PROJECT_NAME}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
   # Export targets for pure CMake
-  install(EXPORT ${EXPORT_NAME}
+  install(EXPORT ${PROJECT_NAME}Targets
     FILE ${PROJECT_NAME}Targets.cmake
     NAMESPACE ${PROJECT_NAME}::
-    DESTINATION ${INSTALL_CMAKEDIR})
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
   # Create config files
   configure_package_config_file(
     cmake/Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
-    INSTALL_DESTINATION ${INSTALL_CMAKEDIR})
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
   write_basic_package_version_file(
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
@@ -141,7 +140,7 @@ else()
   install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
-    DESTINATION ${INSTALL_CMAKEDIR})
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
   # Add uninstall target
   if(NOT TARGET uninstall)

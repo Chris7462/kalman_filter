@@ -5,13 +5,13 @@ Modern C++ implementation of Kalman filter using Eigen.
 ### For ROS2 projects (default):
 ```bash
 cd ${ros2_workspace}/src
-git clone git@github.com:Chris7462/kalman_filter.git
+git clone https://github.com/Chris7462/kalman_filter.git
 cd ${ros2_workspace}
 colcon build --symlink-install --packages-select kalman_filter
 ```
 ### For non-ROS2 projects:
 ```bash
-git clone git@github.com:Chris7462/kalman_filter.git
+git clone https://github.com/Chris7462/kalman_filter.git
 cd kalman_filter
 mkdir build && cd build
 cmake -DENABLE_ROS2=OFF ..
