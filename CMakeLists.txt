@@ -1,9 +1,13 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 
 project(kalman_filter
   VERSION 1.0.0
   DESCRIPTION "Modern C++ Kalman Filter implementation using Eigen"
   LANGUAGES CXX)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
 # Option to enable/disable ROS 2 support
 option(ENABLE_ROS2 "Build with ROS 2 support" ON)
@@ -31,7 +35,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # Find dependencies
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED)
 
 # Library configuration
 add_library(${PROJECT_NAME} INTERFACE)
@@ -47,9 +51,7 @@ target_link_libraries(${PROJECT_NAME}
   INTERFACE
     Eigen3::Eigen)
 
-target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
-
-target_compile_options(${PROJECT_NAME} INTERFACE -Wall -Wextra -Wpedantic)
+target_compile_features(${PROJECT_NAME} INTERFACE c_std_99 cxx_std_17)
 
 # Test sources (common for both build types)
 if(BUILD_TESTING)
@@ -68,10 +70,8 @@ if(ENABLE_ROS2)
 
   # Install targets
   install(TARGETS ${PROJECT_NAME}
-    EXPORT export_${PROJECT_NAME})
-    #ARCHIVE DESTINATION lib
-    #LIBRARY DESTINATION lib
-    #RUNTIME DESTINATION bin)
+    EXPORT export_${PROJECT_NAME}
+    INCLUDES DESTINATION include)
 
   # Install headers
   install(
@@ -79,7 +79,6 @@ if(ENABLE_ROS2)
     DESTINATION include)
 
   # Export targets for ROS 2
-  #ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
   ament_export_targets(export_${PROJECT_NAME})
   ament_export_dependencies(Eigen3)
 
@@ -111,10 +110,8 @@ else()
 
   # Install targets
   install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}Targets)
-    #ARCHIVE DESTINATION lib
-    #LIBRARY DESTINATION lib
-    #RUNTIME DESTINATION bin)
+    EXPORT ${PROJECT_NAME}Targets
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
   # Install headers
   install(DIRECTORY include/${PROJECT_NAME}
