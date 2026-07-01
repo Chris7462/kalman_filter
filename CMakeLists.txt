@@ -5,10 +5,6 @@ project(kalman_filter
   DESCRIPTION "Modern C++ Kalman Filter implementation using Eigen"
   LANGUAGES CXX)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
-
 # Option to enable/disable ROS 2 support
 option(ENABLE_ROS2 "Build with ROS 2 support" ON)
 
@@ -42,16 +38,14 @@ add_library(${PROJECT_NAME} INTERFACE)
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-target_include_directories(${PROJECT_NAME}
-  INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>)
+target_include_directories(${PROJECT_NAME} INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 
-target_link_libraries(${PROJECT_NAME}
-  INTERFACE
-    Eigen3::Eigen)
+target_link_libraries(${PROJECT_NAME} INTERFACE
+  Eigen3::Eigen)
 
-target_compile_features(${PROJECT_NAME} INTERFACE c_std_99 cxx_std_17)
+target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
 
 # Test sources (common for both build types)
 if(BUILD_TESTING)
@@ -59,6 +53,8 @@ if(BUILD_TESTING)
     matrix_test
     filter_base_test
     standard_base_test
+    linearized_measurement_model_test
+    linearized_system_model_test
     extended_kalman_filter_test)
 endif()
 
@@ -70,12 +66,11 @@ if(ENABLE_ROS2)
 
   # Install targets
   install(TARGETS ${PROJECT_NAME}
-    EXPORT export_${PROJECT_NAME}
-    INCLUDES DESTINATION include)
+    EXPORT export_${PROJECT_NAME})
 
   # Install headers
   install(
-    DIRECTORY include/${PROJECT_NAME}
+    DIRECTORY include/
     DESTINATION include)
 
   # Export targets for ROS 2
@@ -94,6 +89,7 @@ if(ENABLE_ROS2)
     foreach(test_src ${test_sources})
       ament_add_gtest(${test_src} test/${test_src}.cpp)
       target_link_libraries(${test_src} ${PROJECT_NAME})
+      target_compile_options(${test_src} PRIVATE -Wall -Wextra -Wpedantic)
     endforeach()
   endif()
 
@@ -110,11 +106,10 @@ else()
 
   # Install targets
   install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}Targets
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    EXPORT ${PROJECT_NAME}Targets)
 
   # Install headers
-  install(DIRECTORY include/${PROJECT_NAME}
+  install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
   # Export targets for pure CMake
@@ -160,6 +155,7 @@ else()
       target_link_libraries(${test_src}
         ${PROJECT_NAME}
         GTest::gtest_main)
+      target_compile_options(${test_src} PRIVATE -Wall -Wextra -Wpedantic)
 
       gtest_discover_tests(${test_src})
     endforeach()

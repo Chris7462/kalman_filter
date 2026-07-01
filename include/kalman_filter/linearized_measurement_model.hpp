@@ -1,5 +1,7 @@
 #pragma once
 
+#include <limits>
+
 #include "kalman_filter/measurement_model.hpp"
 
 
@@ -23,11 +25,12 @@ public:
 
 protected:
   LinearizedMeasurementModel()
+  : chisq_threshold_(std::numeric_limits<double>::infinity())
   {
     H_.setZero();
     V_.setIdentity();
   }
-  ~LinearizedMeasurementModel() = default;
+  ~LinearizedMeasurementModel() override = default;
 
   virtual void updateJacobians(const State & x)
   {

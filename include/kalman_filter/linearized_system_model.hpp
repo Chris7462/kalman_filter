@@ -27,7 +27,7 @@ protected:
     F_.setIdentity();
     W_.setZero();
   }
-  ~LinearizedSystemModel() = default;
+  ~LinearizedSystemModel() override = default;
 
   virtual void updateJacobians(const State & x, const Control & u)
   {

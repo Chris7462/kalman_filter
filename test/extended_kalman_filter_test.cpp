@@ -2,7 +2,7 @@
 
 #define private public
 #include "kalman_filter/extended_kalman_filter.hpp"
-#undef protected
+#undef private
 
 
 using namespace kalman;
