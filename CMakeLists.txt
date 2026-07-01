@@ -50,12 +50,12 @@ target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
 # Test sources (common for both build types)
 if(BUILD_TESTING)
   set(test_sources
-    matrix_test
-    filter_base_test
-    standard_base_test
-    linearized_measurement_model_test
-    linearized_system_model_test
-    extended_kalman_filter_test)
+    test_matrix
+    test_filter_base
+    test_standard_base
+    test_linearized_measurement_model
+    test_linearized_system_model
+    test_extended_kalman_filter)
 endif()
 
 # =============================================================================
